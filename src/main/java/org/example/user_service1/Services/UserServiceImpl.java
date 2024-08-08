@@ -1,10 +1,14 @@
 package org.example.user_service1.Services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.example.user_service1.Dtos.SendEmailEventsDtos;
 import org.example.user_service1.Models.Tokens;
 import org.example.user_service1.Models.User;
 import org.example.user_service1.Repository.TokenRepository;
 import org.example.user_service1.Repository.UserRepository;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,15 +22,19 @@ import java.util.Optional;
 @Service
 public class UserServiceImpl implements UserService{
 
+    private ObjectMapper objectMapper;
     private UserRepository userRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private TokenRepository tokenRepository;
+    private KafkaTemplate<String,String> kafkaTemplate;
 
 
-    UserServiceImpl(TokenRepository tokenRepository,UserRepository userRepository,BCryptPasswordEncoder bCryptPasswordEncoder){
+    UserServiceImpl(ObjectMapper objectMapper, KafkaTemplate kafkaTemplate,TokenRepository tokenRepository,UserRepository userRepository,BCryptPasswordEncoder bCryptPasswordEncoder){
         this.userRepository=userRepository;
         this.bCryptPasswordEncoder=bCryptPasswordEncoder;
         this.tokenRepository=tokenRepository;
+        this.kafkaTemplate=kafkaTemplate;
+        this.objectMapper=objectMapper;
     }
 
 
@@ -45,6 +53,22 @@ public class UserServiceImpl implements UserService{
         }
 
         user1=userRepository.save(user1);
+
+        SendEmailEventsDtos sendEmailEventsDtos=new SendEmailEventsDtos();
+        sendEmailEventsDtos.setTo(email);
+        sendEmailEventsDtos.setFrom("xyz@gmail.com");
+        sendEmailEventsDtos.setSubject("welcome to my app");
+        sendEmailEventsDtos.setBody("welcome to my app and we are happy to have u");
+
+        try {
+            kafkaTemplate.send(
+                    "sendEmail",
+                    objectMapper.writeValueAsString(sendEmailEventsDtos)
+
+            );
+        }catch (Exception e){
+            throw new RuntimeException(e);
+        }
 
         return user1;
     }
