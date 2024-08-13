@@ -54,6 +54,8 @@ public class UserServiceImpl implements UserService{
 
         user1=userRepository.save(user1);
 
+        //publish an email service
+
         SendEmailEventsDtos sendEmailEventsDtos=new SendEmailEventsDtos();
         sendEmailEventsDtos.setTo(email);
         sendEmailEventsDtos.setFrom("xyz@gmail.com");
